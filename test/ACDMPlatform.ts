@@ -189,14 +189,17 @@ describe("ACDM Platform", function () {
       expect(info[1]).to.equal(10000*(10**6));
       expect(await ACDMToken.balanceOf(acdmContract.address)).to.equal(10000*(10**6));
     });
-
+    
     it("Should revert adding order, if you hasn't got enough tokens", async function () {
       await expect(acdmContract.addOrder(1000000*(10**6), await ethers.utils.parseEther("0.1"))).to.be.revertedWith("Not enough balance");
     });
 
     it("Should revert adding order, if one of parameters equals 0", async function () {
       await expect(acdmContract.addOrder(0, await ethers.utils.parseEther("0.1"))).to.be.revertedWith("Incorrect amount");
-      await expect(acdmContract.addOrder(100, 0)).to.be.revertedWith("Incorrect price");
+    });
+
+    it("Should revert adding order, if amount higher than price", async function () {
+      await expect(acdmContract.addOrder(1000000000, 100000)).to.be.revertedWith("Make your price higher");
     });
 
     it("Should revert redeem order, if you try to send less ETH, than price of 1 token", async function () {

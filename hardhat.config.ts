@@ -43,5 +43,4 @@ export default {
     enabled: true,
     currency: "USD",
   }
-  //plugins: ["solidity-coverage", "dotenv", "hardhat-etherscan"]
 };

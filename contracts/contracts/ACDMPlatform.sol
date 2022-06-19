@@ -156,7 +156,7 @@ contract ACDMPlatform {
     function addOrder(uint256 amount_, uint256 price_) external {
         require(ACDMToken.balanceOf(msg.sender) >= amount_, "Not enough balance");
         require(amount_ > 0, "Incorrect amount");
-        require(price_ > 0, "Incorrect price");
+        require(price_ > amount_, "Make your price higher");
 
         ACDMToken.transferFrom(msg.sender, address(this), amount_);
 

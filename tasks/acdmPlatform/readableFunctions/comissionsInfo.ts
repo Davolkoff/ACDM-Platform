@@ -11,7 +11,7 @@ task("cominfo", "Returns information about comissions")
     const info = await platform.comissions();
     console.log(`First level referrer comission (Sale round): ${Number(info[0])/10} %`);
     console.log(`Second level referrer comission (Sale round): ${Number(info[1])/10} %`);
-    console.log(`First level referrer comission (Trade round): ${Number(info[3])/10} %`);
-    console.log(`Second level referrer comission (Trade round): ${Number(info[4])/10} %`);
+    console.log(`First level referrer comission (Trade round): ${Number(info[2])/10} %`);
+    console.log(`Second level referrer comission (Trade round): ${Number(info[3])/10} %`);
 
 });
