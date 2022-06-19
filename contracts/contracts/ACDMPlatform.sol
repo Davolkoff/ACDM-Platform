@@ -181,7 +181,8 @@ contract ACDMPlatform {
         require(msg.value <= users[seller_].orders[orderId_].tokenPrice * users[seller_].orders[orderId_].amount, "Not enough tokens in order");
         
         uint256 amount = msg.value / users[seller_].orders[orderId_].tokenPrice;
-        
+        payable(msg.sender).transfer(msg.value - (amount * users[seller_].orders[orderId_].tokenPrice)); // unused eth
+
         users[seller_].orders[orderId_].amount -= amount;
         tradingVolume = msg.value;
 
