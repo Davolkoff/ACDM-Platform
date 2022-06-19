@@ -5,7 +5,7 @@ async function main() {
   await run("compile");
 
   const ERC20 = await ethers.getContractFactory("XXXToken");
-  const contract = await ERC20.deploy("XXXToken", "XXX", 18);
+  const contract = await ERC20.deploy("XXX Coin", "XXX", 18);
 
   await contract.deployed();
 

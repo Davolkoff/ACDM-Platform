@@ -12,7 +12,7 @@ async function main() {
   const contract = await Platform.deploy(
     process.env.ROUTER_ADDRESS, 
     process.env.ACDM_TOKEN_ADDRESS, 
-    process.env.XXX_TOKEN_ADDRESS, 
+    process.env.DAO_ADDRESS, 
     process.env.XXX_TOKEN_ADDRESS, 
     await ethers.utils.parseEther("0.00000000001"), 
     await ethers.utils.parseEther("1"), 
