@@ -43,4 +43,4 @@ export default {
     enabled: true,
     currency: "USD",
   }
-};
+}
