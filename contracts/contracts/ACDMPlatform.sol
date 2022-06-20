@@ -85,14 +85,11 @@ contract ACDMPlatform {
 
         ref1TradeComission = ref1TradeComission_;
         ref2TradeComission = ref2TradeComission_;
-
-        users[address(this)].referrer = address(this);
     }
 
     // adding new user
     function register(address referrer_) external {
-        require(users[msg.sender].referrer == address(0), "Already registered");
-        require(users[referrer_].referrer != address(0), "Unknown referrer");
+        // I thought, that adding require "already registered", but I decided to give users the opportunity to change the referral 
         users[msg.sender].referrer = referrer_;
     }
 
@@ -112,9 +109,8 @@ contract ACDMPlatform {
 
     // buy ACDM tokens for ETH
     function buyACDM() external payable {
-        require(users[msg.sender].referrer != address(0), "Register to buy tokens");
         require(msg.value > tokenPrice, "Not enough ETH");
-        require(contractState, "You can't buy tokens on trade round");
+        require(contractState, "Available only on sale round");
 
         uint256 amount = msg.value / tokenPrice;
 
@@ -123,12 +119,13 @@ contract ACDMPlatform {
         
         // sending comissions to referrers
         address referrer1 = users[msg.sender].referrer;
+        payable(msg.sender).transfer(msg.value - (amount * tokenPrice)); // unused eth
 
-        if (referrer1 != address(this)) {
+        if (referrer1 != address(0)) {
             payable(referrer1).transfer(msg.value * ref1SaleComission / 1000);
             address referrer2 = users[referrer1].referrer;
 
-            if(referrer2 != address(this)) {
+            if(referrer2 != address(0)) {
                 payable(referrer2).transfer(msg.value * ref2SaleComission / 1000);
             }
         }
@@ -154,6 +151,7 @@ contract ACDMPlatform {
 
     // adds new order (you should place price for all tokens in order to the "price_" variable)
     function addOrder(uint256 amount_, uint256 price_) external {
+        require(!contractState, "Available only on trade round");
         require(ACDMToken.balanceOf(msg.sender) >= amount_, "Not enough balance");
         require(amount_ > 0, "Incorrect amount");
         require(price_ > amount_, "Make your price higher");
@@ -168,6 +166,7 @@ contract ACDMPlatform {
 
     // removes your order (after using this function your last order will be placed on this order ID)
     function removeOrder(uint256 orderId_) external {
+        require(!contractState, "Available only on trade round");
         ACDMToken.transfer(msg.sender, users[msg.sender].orders[orderId_].amount);
 
         users[msg.sender].orders[orderId_] = users[msg.sender].orders[users[msg.sender].orders.length - 1];
@@ -177,6 +176,7 @@ contract ACDMPlatform {
 
     // buys tokens from selected order
     function redeemOrder(address seller_, uint256 orderId_) external payable {
+        require(!contractState, "Available only on trade round");
         require(msg.value >= users[seller_].orders[orderId_].tokenPrice, "Not enough ETH");
         require(msg.value <= users[seller_].orders[orderId_].tokenPrice * users[seller_].orders[orderId_].amount, "Not enough tokens in order");
         
@@ -192,11 +192,11 @@ contract ACDMPlatform {
         // sending comission to refferers
         address referrer1 = users[seller_].referrer;
         
-        if (referrer1 != address(this)) {
+        if (referrer1 != address(0)) {
             payable(referrer1).transfer(msg.value * ref1SaleComission / 1000);
             address referrer2 = users[referrer1].referrer;
 
-            if(referrer2 != address(this)) {
+            if(referrer2 != address(0)) {
                 payable(referrer2).transfer(msg.value * ref2SaleComission / 1000);
             }
         }  

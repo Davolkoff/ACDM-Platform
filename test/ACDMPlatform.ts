@@ -124,26 +124,13 @@ describe("ACDM Platform", function () {
   });
 
   describe("Platform functions", function () {
-    it("Should revert registration, if your referrer is not registered", async function () {
-      await expect(acdmContract.register(addr1.address)).to.be.revertedWith("Unknown referrer");
-    });
-
-    it("Should revert buying ACDM tokens if you are not registered", async function () {
-      await expect(acdmContract.buyACDM()).to.be.revertedWith("Register to buy tokens");
-    });
-
     it("Should allow you to register on platform", async function () {
-      await acdmContract.connect(addr2).register(acdmContract.address);
-      await acdmContract.connect(addr1).register(addr2.address);
-      await acdmContract.register(addr1.address);
+      await acdmContract.connect(addr1).register(addr2.address); //addr2 - refferer1
+      await acdmContract.register(addr1.address); //addr 1 - refferer1, addr2 - refferer2
     });
 
     it("Should revert buying ACDM tokens if you send not enough ETH", async function () {
       await expect(acdmContract.buyACDM({value: ethers.utils.parseEther("0.000000000000000001")})).to.be.revertedWith("Not enough ETH");
-    });
-
-    it("Should revert registration, if you already registered", async function () {
-      await expect(acdmContract.register(addr1.address)).to.be.revertedWith("Already registered");
     });
 
     it("Should allow you to start sale round", async function () {
@@ -165,6 +152,12 @@ describe("ACDM Platform", function () {
       expect(await ACDMToken.balanceOf(addr1.address)).to.equal(10000*(10**6));
     });
 
+    it("Should revert all trade round functions if it's sale round now", async function () {
+      await expect(acdmContract.addOrder(100000,1000)).to.be.revertedWith("Available only on trade round");
+      await expect(acdmContract.removeOrder(1)).to.be.revertedWith("Available only on trade round");
+      await expect(acdmContract.redeemOrder(addr1.address, 1)).to.be.revertedWith("Available only on trade round");
+    });
+
     it("Should allow you to start trade round earler, than in 3 days, if sale round pool is empty", async function () {
       await acdmContract.startTradeRound();
       const info = await acdmContract.currentState();
@@ -176,7 +169,7 @@ describe("ACDM Platform", function () {
     });
 
     it("Should revert buying ACDM tokens from the system in trade round", async function () {
-      await expect(acdmContract.buyACDM({value: ethers.utils.parseEther("1")})).to.be.revertedWith("You can't buy tokens on trade round");
+      await expect(acdmContract.buyACDM({value: ethers.utils.parseEther("1")})).to.be.revertedWith("Available only on sale round");
     });
 
     it("Should allow you to add new order", async function () {

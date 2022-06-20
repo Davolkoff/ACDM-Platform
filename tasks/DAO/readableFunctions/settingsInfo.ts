@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-task("sinfo", "Information about settings of the DAO Voting contract")
+task("setinfo", "Information about settings of the DAO Voting contract")
 .setAction(async (args, hre) => {
     
     const daoVoting = await hre.ethers.getContractAt("DAOVoting", process.env.DAO_ADDRESS as string);

@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-task("sinfo", "Information about settings of staking contract")
+task("stinfo", "Information about settings of staking contract")
 .setAction(async (args, hre) => {
 
     const sContract = await hre.ethers.getContractAt("MyStaking", process.env.STAKING_CONTRACT_ADDRESS as string);
