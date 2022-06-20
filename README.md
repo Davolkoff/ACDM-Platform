@@ -17,6 +17,8 @@
  + [Mint rewards tokens to staking contract](#MintSC)
  + [Deploy DAO voting contract](#Deploy-DAO)
  + [Deploy ACDM platform contract](#Deploy-platform)
+ + [Connect DAO to Staking contract](#Connect)
+ + [Connect Platform to tokens](#Connectpl)
 2. <b>ACDM Platform functions (Sale round)</b> 
  + [Register](#Register)
  + [Start sale round](#Ssr)
@@ -88,6 +90,16 @@ npx hardhat run scripts/contracts/deployDAO.ts
 #### <a name="Deploy-platform"></a> - Deploy ACDM platform contract (deploys ACDM platform contract, using addresses of contracts from .env)
 ```shell
 npx hardhat run scripts/contracts/deployPlatform.ts
+```
+
+#### <a name="Connect"></a> - Connect DAO to staking contract
+```shell
+npx hardhat connect
+```
+
+#### <a name="Connectpl"></a> - Connect Platform to tokens
+```shell
+npx hardhat connectpl
 ```
 
 -------------------------
