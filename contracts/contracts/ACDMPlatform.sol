@@ -24,6 +24,7 @@ contract ACDMPlatform {
     // universal variables (for both rounds)
     uint256 private lastRoundBeginningTime;
     bool private contractState; // 0 - Trade Round, 1 - Sale round
+    uint256 private roundDuration; // duration of every round (doesn't change)
 
     // sale round variables
     uint256 private saleRoundAmount;
@@ -53,6 +54,16 @@ contract ACDMPlatform {
         _;
     }
 
+    modifier requireSaleRound {
+        require(contractState, "Available only on sale round");
+        _;
+    }
+
+    modifier requireTradeRound {
+        require(!contractState, "Available only on trade round");
+        _;
+    }
+
     // *values of comissions enter with one digit after dot without a dot (Example: 2.5 => 25)
     constructor
     (
@@ -63,6 +74,7 @@ contract ACDMPlatform {
         
         uint256 startTokenPrice_,
         uint256 startTradingVolume_,
+        uint256 roundDuration_,
         
         uint256 ref1SaleComission_,
         uint256 ref2SaleComission_,
@@ -79,6 +91,7 @@ contract ACDMPlatform {
         
         tokenPrice = startTokenPrice_;
         tradingVolume = startTradingVolume_;
+        roundDuration = roundDuration_;
 
         ref1SaleComission = ref1SaleComission_;
         ref2SaleComission = ref2SaleComission_;
@@ -94,9 +107,8 @@ contract ACDMPlatform {
     }
 
     // starts sale round
-    function startSaleRound() external {
-        require(!contractState, "Sale round already started");
-        require(block.timestamp - lastRoundBeginningTime > 259200, "Not time yet");
+    function startSaleRound() external requireTradeRound {
+        require(block.timestamp - lastRoundBeginningTime > roundDuration, "Not time yet");
 
         saleRoundAmount = tradingVolume/tokenPrice;
 
@@ -108,9 +120,8 @@ contract ACDMPlatform {
     }
 
     // buy ACDM tokens for ETH
-    function buyACDM() external payable {
+    function buyACDM() external payable requireSaleRound {
         require(msg.value > tokenPrice, "Not enough ETH");
-        require(contractState, "Available only on sale round");
 
         uint256 amount = msg.value / tokenPrice;
 
@@ -132,10 +143,9 @@ contract ACDMPlatform {
     }
 
     // starts trade round
-    function startTradeRound() external {
-        require(contractState, "Trade round already started");
+    function startTradeRound() external requireSaleRound {
         if (saleRoundAmount != 0) {
-            require(block.timestamp - lastRoundBeginningTime > 259200, "Not time yet");
+            require(block.timestamp - lastRoundBeginningTime > roundDuration, "Not time yet");
         }
 
         tradingVolume = 0;
@@ -150,8 +160,7 @@ contract ACDMPlatform {
     }
 
     // adds new order (you should place price for all tokens in order to the "price_" variable)
-    function addOrder(uint256 amount_, uint256 price_) external {
-        require(!contractState, "Available only on trade round");
+    function addOrder(uint256 amount_, uint256 price_) external requireTradeRound {
         require(ACDMToken.balanceOf(msg.sender) >= amount_, "Not enough balance");
         require(amount_ > 0, "Incorrect amount");
         require(price_ > amount_, "Make your price higher");
@@ -165,8 +174,7 @@ contract ACDMPlatform {
     }
 
     // removes your order (after using this function your last order will be placed on this order ID)
-    function removeOrder(uint256 orderId_) external {
-        require(!contractState, "Available only on trade round");
+    function removeOrder(uint256 orderId_) external requireTradeRound {
         ACDMToken.transfer(msg.sender, users[msg.sender].orders[orderId_].amount);
 
         users[msg.sender].orders[orderId_] = users[msg.sender].orders[users[msg.sender].orders.length - 1];
@@ -175,8 +183,7 @@ contract ACDMPlatform {
     }
 
     // buys tokens from selected order
-    function redeemOrder(address seller_, uint256 orderId_) external payable {
-        require(!contractState, "Available only on trade round");
+    function redeemOrder(address seller_, uint256 orderId_) external payable requireTradeRound {
         require(msg.value >= users[seller_].orders[orderId_].tokenPrice, "Not enough ETH");
         require(msg.value <= users[seller_].orders[orderId_].tokenPrice * users[seller_].orders[orderId_].amount, "Not enough tokens in order");
         

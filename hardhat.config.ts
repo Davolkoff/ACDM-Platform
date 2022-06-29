@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "solidity-coverage";
 import "./tasks";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 
 dotenv.config();
 
@@ -42,5 +43,10 @@ export default {
   gasReporter: {
     enabled: true,
     currency: "USD",
-  }
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
+  } 
 }

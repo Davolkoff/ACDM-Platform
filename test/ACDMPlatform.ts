@@ -113,6 +113,7 @@ describe("ACDM Platform", function () {
         XXXToken.address,
         await ethers.utils.parseEther("0.00000000001"), // start price
         await ethers.utils.parseEther("1"), // start amount
+        259200,
         30, 20, 25, 25 // comissions (3.0, 2.0, 2.5, 2.5)
       )
     });
@@ -129,10 +130,6 @@ describe("ACDM Platform", function () {
       await acdmContract.register(addr1.address); //addr 1 - refferer1, addr2 - refferer2
     });
 
-    it("Should revert buying ACDM tokens if you send not enough ETH", async function () {
-      await expect(acdmContract.buyACDM({value: ethers.utils.parseEther("0.000000000000000001")})).to.be.revertedWith("Not enough ETH");
-    });
-
     it("Should allow you to start sale round", async function () {
       await acdmContract.startSaleRound();
       var info = await acdmContract.currentState();
@@ -140,7 +137,11 @@ describe("ACDM Platform", function () {
     });
 
     it("Should revert the second start of sale round", async function () {
-      await expect(acdmContract.startSaleRound()).to.be.revertedWith("Sale round already started");
+      await expect(acdmContract.startSaleRound()).to.be.revertedWith("Available only on trade round");
+    });
+
+    it("Should revert buying ACDM tokens if you send not enough ETH", async function () {
+      await expect(acdmContract.buyACDM({value: ethers.utils.parseEther("0.000000000000000001")})).to.be.revertedWith("Not enough ETH");
     });
 
     it("Should allow you to buy tokens for ETH on sale round", async function () {
@@ -165,7 +166,7 @@ describe("ACDM Platform", function () {
     });
 
     it("Should revert the second start of trade round", async function () {
-      await expect(acdmContract.startTradeRound()).to.be.revertedWith("Trade round already started");
+      await expect(acdmContract.startTradeRound()).to.be.revertedWith("Available only on sale round");
     });
 
     it("Should revert buying ACDM tokens from the system in trade round", async function () {

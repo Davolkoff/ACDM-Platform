@@ -15,7 +15,8 @@ async function main() {
     process.env.DAO_ADDRESS, 
     process.env.XXX_TOKEN_ADDRESS, 
     await ethers.utils.parseEther("0.00000000001"), 
-    await ethers.utils.parseEther("1"), 
+    await ethers.utils.parseEther("1"),
+    259200,
     30, 20, 25, 25);
 
   await contract.deployed();
