@@ -9,7 +9,7 @@ async function main() {
   const leaves = whitelistMembers.map(addr => keccak256(addr));
 
   const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-  const rootHash = merkleTree.getRoot().toString('hex');
+  const rootHash = '0x' + merkleTree.getRoot().toString('hex');
 
   console.log("Root hash, that you should paste to your proposal:", rootHash);
 }

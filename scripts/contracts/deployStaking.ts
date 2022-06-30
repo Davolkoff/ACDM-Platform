@@ -14,7 +14,7 @@ async function main() {
     const leaves = whitelistMembers.map(addr => keccak256(addr));
 
     const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-    const rootHash = merkleTree.getRoot().toString('hex');
+    const rootHash = '0x' + merkleTree.getRoot().toString('hex');
 
     const contract = await Staking.deploy(259200, 3, 604800, rootHash, process.env.LP_TOKEN_ADDRESS, process.env.XXX_TOKEN_ADDRESS);
     await contract.deployed();
