@@ -356,7 +356,7 @@ npx hardhat vinfo --pid 43
 npx hardhat setinfo
 ```
 -------------------------
-## 9. 9. Others
+## 9. Others
 
 #### <a name="Get-hash"></a> <b>- Getting root hash of the merkle tree</b> (after executing this command, a root hash will appear in the terminal, which can be inserted into the proposal or used for other purposes)
 
