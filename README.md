@@ -49,6 +49,8 @@
 8. <b>Information functions (DAO Voting)</b>
  + [Voting information](#Voting-info)
  + [Settings information](#Settings-info)
+9. <b>Others</b>
+ + [Getting root hash of the merkle tree](#Get-hash)
 -------------------------
 ## 1. Deploying
 
@@ -352,5 +354,13 @@ npx hardhat vinfo --pid 43
 
 ```shell
 npx hardhat setinfo
+```
+-------------------------
+## 9. 9. Others
+
+#### <a name="Get-hash"></a> <b>- Getting root hash of the merkle tree</b> (after executing this command, a root hash will appear in the terminal, which can be inserted into the proposal or used for other purposes)
+
+```shell
+npx hardhat run scripts/createMerkleTree.ts
 ```
 -------------------------
