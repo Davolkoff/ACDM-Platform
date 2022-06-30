@@ -73,6 +73,7 @@ npx hardhat pool
 ```
 
 #### <a name="Deploy-staking"></a> - Deploy staking contract (deploys staking contract, using addresses of contracts from .env)
+>Before executing of this command, you should fill the whitelist at the root folder of this project.
 ```shell
 npx hardhat run scripts/contracts/deployStaking.ts
 ```
