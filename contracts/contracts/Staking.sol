@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/Contracts/IERC20.sol";
 import "../interfaces/Contracts/IDAO.sol";
-
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MyStaking {
     address public owner; // owner of contract
@@ -15,6 +15,8 @@ contract MyStaking {
     IERC20 public lpToken; // lp token
     IERC20 public rewardsToken; // rewards token
     IDAO public DAOVoting; // DAO Voting
+
+    bytes32 public whitelistMerkleRoot; // root of merkle tree of white list
 
     struct User {
         uint lpBalance; // needs to count rewards
@@ -44,12 +46,13 @@ contract MyStaking {
         uint remains
     );
 
-    constructor (uint _freezeTime, uint _rewardsPercent, uint _rewardsFrequency, address _lpToken, address _rewardsToken) {
+    constructor (uint _freezeTime, uint _rewardsPercent, uint _rewardsFrequency, bytes32 whitelistMerkleRoot_, address _lpToken, address _rewardsToken) {
         lpToken = IERC20(_lpToken);
         rewardsToken = IERC20(_rewardsToken);
         freezeTime = _freezeTime;
         rewardsPercent = _rewardsPercent;
         rewardsFrequency = _rewardsFrequency;
+        whitelistMerkleRoot = whitelistMerkleRoot_;
         owner = msg.sender;
     }
 
@@ -90,8 +93,9 @@ contract MyStaking {
     }
 
     // sends tokens to contract for staking
-    function stake (uint _amount) external countBalances {
+    function stake (uint _amount, bytes32[] calldata hexProof_) external countBalances {
         require(_amount > 0, "You can't send 0 tokens");
+        require(verifyWhitelisted(hexProof_), "You are not in whitelist");
 
         // counting rewards for old LP balance
         uint rewardsPerCycle = users[msg.sender].lpBalance * rewardsPercent / 100;
@@ -103,6 +107,12 @@ contract MyStaking {
         users[msg.sender].lastStakeTimestamp = block.timestamp;
         
         emit StakeEv(msg.sender, _amount);
+    }
+
+    // checks if the user is in the whitelist
+    function verifyWhitelisted (bytes32[] calldata hexProof_) internal view returns(bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        return MerkleProof.verify(hexProof_, whitelistMerkleRoot, leaf);
     }
    
     // sends reward tokens to user
@@ -131,6 +141,11 @@ contract MyStaking {
 
         users[msg.sender].availableBalance = 0;
         DAOVoting.endWithdrawing(msg.sender);
+    }
+
+    // changes root of merkle tree in staking contract
+    function changeWhitelistMerkleRoot (bytes32 whitelistMerkleRoot_) external requireDAO {
+        whitelistMerkleRoot = whitelistMerkleRoot_;
     }
 
     // changes freeze time (only by DAO)

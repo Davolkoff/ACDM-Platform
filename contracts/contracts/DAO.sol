@@ -87,6 +87,8 @@ contract DAOVoting {
 
     // adds new proposal (can be called only by chairperson)
     function addProposal(address recipient_, bytes memory callData_, string memory description_, bool proposalType_) public requireChairPerson {
+        // proposal type false - usual proposal, true - one of two
+        
         // Struct containing a mapping cannot be constructed, so I set values one by one
         proposals[proposalId].callData = callData_;
         proposals[proposalId].recipient = recipient_;

@@ -1,8 +1,10 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Contract } from "ethers";
+import { keccak256 } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import { IUniswapV2Factory, IUniswapV2Pair, IUniswapV2Router02 } from "../typechain";
+import { MerkleTree } from "merkletreejs";
 
 describe("ACDM Platform", function () {
   let XXXToken: Contract;
@@ -15,6 +17,8 @@ describe("ACDM Platform", function () {
   let owner: SignerWithAddress;
   let addr1: SignerWithAddress; // first referrer
   let addr2: SignerWithAddress; // second referrer
+
+  let hexProof: string [];
 
   describe("Deploying", function () {
     it("Should deploy XXX token", async function () {
@@ -71,14 +75,26 @@ describe("ACDM Platform", function () {
 
     it("Should deploy staking contract successfully", async function() {
       const Staking = await ethers.getContractFactory("MyStaking");
+            
+            let whitelistMembers = [
+                owner.address,
+                addr1.address,
+                addr2.address
+            ]
 
-      stakingContract = await Staking.deploy(1200, 3, 604800, lpToken.address, XXXToken.address);
-      await stakingContract.deployed();
+            const leaves = whitelistMembers.map(addr => keccak256(addr));
+
+            const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+            const rootHash = '0x' + merkleTree.getRoot().toString('hex');
+            hexProof = merkleTree.getHexProof(keccak256(owner.address));
+            
+            stakingContract = await Staking.deploy(1200, 3, 604800, rootHash, lpToken.address, XXXToken.address);
+            await stakingContract.deployed();
     });
 
     it("Should stake tokens to staking contract", async function () {
       await lpToken.approve(stakingContract.address, 1000)
-      await stakingContract.stake(1000);
+      await stakingContract.stake(1000, hexProof);
       expect(await stakingContract.balanceOf(owner.address)).to.equal(1000);
     });
 

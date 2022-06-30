@@ -1,8 +1,10 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Contract } from "ethers";
+import { keccak256 } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-import { IUniswapV2Factory, IUniswapV2Pair, IUniswapV2Router02 } from "../typechain";
+import { MerkleTree } from "merkletreejs";
+import { whitelistMembers } from "../whitelist";
 
 describe("Voting + Staking", function () {
     let XXXToken: Contract;
@@ -10,9 +12,13 @@ describe("Voting + Staking", function () {
     let stakingContract: Contract;
     let votingContract: Contract;
 
+    let merkleTree: MerkleTree;
+    let hexProof: string[];
+
     let owner: SignerWithAddress;
     let addr1: SignerWithAddress;
     let addr2: SignerWithAddress;
+    let addr3: SignerWithAddress;
   
 
     describe("Deploying", function () {
@@ -26,7 +32,7 @@ describe("Voting + Staking", function () {
         });
 
         it("Should mint tokens on user's accounts", async function() {
-            [owner, addr1, addr2] = await ethers.getSigners();
+            [owner, addr1, addr2, addr3] = await ethers.getSigners();
             const xxxAmount = await ethers.utils.parseEther("100000000");
 
             await XXXToken.mint(owner.address, xxxAmount);
@@ -36,12 +42,25 @@ describe("Voting + Staking", function () {
 
             await lpToken.mint(owner.address, 1000000000000);
             await lpToken.mint(addr1.address, 1000000);
+            await lpToken.mint(addr3.address, 1000000000000);
         });
 
         it("Should deploy staking contract successfully", async function() {
             const Staking = await ethers.getContractFactory("MyStaking");
+            
+            let whitelistMembers = [
+                owner.address,
+                addr1.address,
+                addr2.address
+            ]
 
-            stakingContract = await Staking.deploy(1200, 3, 604800, lpToken.address, XXXToken.address);
+            const leaves = whitelistMembers.map(addr => keccak256(addr));
+
+            merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+            const rootHash = '0x' + merkleTree.getRoot().toString('hex');
+            hexProof = merkleTree.getHexProof(keccak256(owner.address));
+
+            stakingContract = await Staking.deploy(1200, 3, 604800, rootHash, lpToken.address, XXXToken.address);
             await stakingContract.deployed();
         });
 
@@ -81,14 +100,19 @@ describe("Voting + Staking", function () {
             const lpTokenAmount = 1000000000;
 
             await lpToken.approve(stakingContract.address, lpTokenAmount);
-            await stakingContract.stake(lpTokenAmount/2);
-            await stakingContract.stake(lpTokenAmount/2);
+            await stakingContract.stake(lpTokenAmount/2, hexProof);
+            await stakingContract.stake(lpTokenAmount/2, hexProof);
 
             expect(await lpToken.balanceOf(stakingContract.address)).to.equal(lpTokenAmount);
         });
 
+        it("Should revert staking, if you are not in whitelist", async function () {
+            await lpToken.connect(addr3).approve(stakingContract.address, 10000000);
+            await expect(stakingContract.connect(addr3).stake(10000000, hexProof)).to.be.revertedWith("You are not in whitelist");
+        });
+
         it("Should revert transaction if you try to send 0 tokens", async function() {
-            await expect(stakingContract.stake(0)).to.be.revertedWith("You can't send 0 tokens");
+            await expect(stakingContract.stake(0, hexProof)).to.be.revertedWith("You can't send 0 tokens");
         });
 
         it("Should revert changing settings if you are not a DAO", async function() {
@@ -110,7 +134,7 @@ describe("Voting + Staking", function () {
         it("Should withdraw user's available lp tokens", async function() {
             const unwithdrawableAmount = "20000000";
             await lpToken.approve(stakingContract.address, unwithdrawableAmount);
-            await stakingContract.stake(unwithdrawableAmount);
+            await stakingContract.stake(unwithdrawableAmount, hexProof);
 
             await stakingContract.unstake();
             expect(await stakingContract.balanceOf(owner.address)).to.equal(unwithdrawableAmount);
@@ -126,7 +150,7 @@ describe("Voting + Staking", function () {
         it("Should revert unstaking if you haven't available lp tokens", async function() {
             const unwithdrawableAmount = "20000000";
             await lpToken.approve(stakingContract.address, unwithdrawableAmount);
-            await stakingContract.stake(unwithdrawableAmount);
+            await stakingContract.stake(unwithdrawableAmount, hexProof);
             await expect(stakingContract.unstake()).to.be.revertedWith("You can't unstake lp tokens right now");
         });
     });
@@ -168,7 +192,7 @@ describe("Voting + Staking", function () {
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
-              }];
+            }];
       
             var description = "Changing settings in staking contract";
             // for testing situations with correct signature
@@ -223,9 +247,9 @@ describe("Voting + Staking", function () {
         });
 
         it("Should allow you to vote in the voting", async function () {
-
+            const addr1HexProof = merkleTree.getHexProof(keccak256(addr1.address));
             await lpToken.connect(addr1).approve(stakingContract.address, 200);
-            await stakingContract.connect(addr1).stake(200);
+            await stakingContract.connect(addr1).stake(200, addr1HexProof);
 
             // first voting (proposal accepted by users)
             await votingContract.vote(0, 1);
@@ -379,6 +403,53 @@ describe("Voting + Staking", function () {
             await votingContract.finishProposal(8);
             const info = await stakingContract.stakingInfo();
             expect(info[0]).to.equal(100);
-        });        
+        });
+        
+        it("Should allow chairperson to change root hash in staking contract by voting", async function () {
+            const jsonAbi = [{
+                "inputs": [
+                  {
+                    "internalType": "bytes32",
+                    "name": "whitelistMerkleRoot_",
+                    "type": "bytes32"
+                  }
+                ],
+                "name": "changeWhitelistMerkleRoot",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }];
+            const iface = new ethers.utils.Interface(jsonAbi);
+            const description = "Exclude owner from the whitelist";
+
+            let whitelistMembers = [
+                addr1.address,
+                addr2.address
+            ]
+
+            const leaves = whitelistMembers.map(addr => keccak256(addr));
+
+            const changedMerkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+            const rootHash = '0x' + changedMerkleTree.getRoot().toString('hex');
+
+            const calldata = iface.encodeFunctionData('changeWhitelistMerkleRoot', [rootHash]);
+
+            await lpToken.approve(stakingContract.address, 100);
+            await stakingContract.stake(100, hexProof); // here I (owner) can stake tokens without problems
+
+            await votingContract.addProposal(stakingContract.address, calldata, description, false);
+
+            await votingContract.vote(9, 1);
+
+            await ethers.provider.send('evm_increaseTime', [10000]);
+            await ethers.provider.send('evm_mine', []);
+
+            await votingContract.finishProposal(9); // here I has been excluded from whitelist
+            
+            // here I have a problem with staking tokens
+            const changedHexProof = merkleTree.getHexProof(keccak256(owner.address));
+            await lpToken.approve(stakingContract.address, 100);
+            await expect(stakingContract.stake(100, changedHexProof)).to.be.revertedWith("You are not in whitelist");
+        });
     });
 });
